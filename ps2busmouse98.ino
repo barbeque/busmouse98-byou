@@ -93,26 +93,28 @@ void loop() {
   int delta_x = max(-MAX_MOVE, min(MAX_MOVE, mouse.x_movement()));
   int delta_y = max(-MAX_MOVE, min(MAX_MOVE, mouse.y_movement()));
 
-  Serial.print("X: ");
+#ifdef DEBUG
+  /*Serial.print("X: ");
   Serial.print(delta_x);
   Serial.print(" Y: ");
-  Serial.println(delta_y);
+  Serial.println(delta_y);*/
+#endif
 
   while(abs(delta_x) > 0) {
     switch(stateX) {
-      case 3:
+      case 0:
         pinMode(XA, OUTPUT);
         pinMode(XB, INPUT);
         break;
-      case 2:
+      case 1:
         pinMode(XA, OUTPUT);
         pinMode(XB, OUTPUT);
         break;
-      case 1:
+      case 2:
         pinMode(XA, INPUT);
         pinMode(XB, OUTPUT);
         break;
-      case 0:
+      case 3:
         pinMode(XA, INPUT);
         pinMode(XB, INPUT);
         break;
@@ -123,7 +125,12 @@ void loop() {
     int increment = sgn(delta_x);
     delta_x -= increment;
     stateX = (stateX + increment) % 4;
+    if(stateX < 0) {
+      stateX = 3; // how does modulo not work??
+    }
     delayMicroseconds(150);
+    Serial.print("PULSE ");
+    Serial.println(stateX);
   }
 
   while(abs(delta_y) > 0) {
@@ -151,7 +158,10 @@ void loop() {
     int increment = sgn(delta_y);
     delta_y -= increment;
     stateY = (stateY + increment) % 4;
-    delayMicroseconds(150);
+    if(stateY < 0) {
+      stateY = 3; // how does modulo not work??
+    }
+    delayMicroseconds(175);
   }
   
   delayMicroseconds(5);
