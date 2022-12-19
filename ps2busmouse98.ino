@@ -14,7 +14,7 @@
 #define ERROR_NUM 3
 #define MAX_MOVE 20
 
-#define DEBUG
+//#define DEBUG
 
 PS2MouseHandler mouse(PS2CLK, PS2DATA, PS2_MOUSE_STREAM);
 
