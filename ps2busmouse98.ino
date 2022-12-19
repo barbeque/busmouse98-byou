@@ -67,6 +67,12 @@ int receiveData(void) {
   return mouse.status(); // same byte as before
 }
 
+int sgn(int value) {
+  if(value == 0) { return 0; }
+  else if(value > 0) { return 1; }
+  return -1;
+}
+
 void loop() {
   int data = 0;
   static int data_cnt = 0;
@@ -81,178 +87,66 @@ void loop() {
   pinMode(LB, mouse.button(0) ? OUTPUT : INPUT);
   pinMode(RB, mouse.button(2) ? OUTPUT : INPUT); // button(1) is middle mouse
 
-  if (data_cnt == 0) {
-    if (data & 0x10) {
-      stateX = stateX | 0x10; // Negative X
+  // Prepare state machine to clock out any position changes
+  int delta_x = mouse.x_movement();
+  int delta_y = mouse.y_movement();
+
+  while(abs(delta_x) > 0) {
+    switch(stateX) {
+      case 0:
+        pinMode(XA, OUTPUT);
+        pinMode(XB, INPUT);
+        break;
+      case 1:
+        pinMode(XA, OUTPUT);
+        pinMode(XB, OUTPUT);
+        break;
+      case 2:
+        pinMode(XA, INPUT);
+        pinMode(XB, OUTPUT);
+        break;
+      case 3:
+        pinMode(XA, INPUT);
+        pinMode(XB, INPUT);
+        break;
+      default:
+        stateX = 0; // shouldn't happen, but...
     }
-    else {
-      stateX = stateX & 0xEF; // Positive X
-    }
-    if (data & 0x20) {
-      stateY = stateY | 0x20; // Negative Y
-    }
-    else {
-      stateY = stateY & 0xDF; // Positive Y
-    }
-    data_cnt++;
+    
+    int increment = sgn(delta_x);
+    delta_x -= increment;
+    stateX = (stateX + increment) % 4;
+    delayMicroseconds(150);
   }
-  else if (data_cnt == 1) {
 
-    if ((stateX & 0x10) && data) {
-      dataX = 256 - data;
+  while(abs(delta_y) > 0) {
+    switch(stateY) {
+      case 0:
+        pinMode(YA, OUTPUT);
+        pinMode(YB, INPUT);
+        break;
+      case 1:
+        pinMode(YA, OUTPUT);
+        pinMode(YB, OUTPUT);
+        break;
+      case 2:
+        pinMode(YA, INPUT);
+        pinMode(YB, OUTPUT);
+        break;
+      case 3:
+        pinMode(YA, INPUT);
+        pinMode(YB, INPUT);
+        break;
+      default:
+        stateY = 0; // shouldn't happen, but...
     }
-    else {
-      dataX = data;
-    }
-    data_cnt++;
+    
+    int increment = sgn(delta_y);
+    delta_y -= increment;
+    stateY = (stateY + increment) % 4;
+    delayMicroseconds(150);
   }
-  else if (data_cnt == 2) {
-
-    if ((stateY & 0x20) && data) {
-      dataY = 256 - data;
-    }
-    else {
-      dataY = data;
-    }
-
-#ifdef DEBUG
-    Serial.print(dataX);
-    Serial.print(":");
-    Serial.println(dataY);
-#endif
-
-// Limiter
-
-    if (error_watchdog || error_parity) {
-      dataX = 0;
-    }
-    else if (dataX > MAX_MOVE) {
-      dataX = MAX_MOVE;
-    }
-
-    if (error_watchdog || error_parity) {
-      dataY = 0;
-    }
-    else if (dataY > MAX_MOVE) {
-      dataY = MAX_MOVE;
-    }
-
-    error_watchdog = 0;
-    error_parity = 0;
-
-// Cursor
-// state      0 1 3 2
-//          ___     ___
-// A pulse |   |___|   |___
-//            ___     ___
-// B pulse   |   |___|   |___
-//
-// declease <--        --> increase
-//
-// For XA,XB the increasing pulse move the cursor rightward. (Positive for PS/2)
-// For YA,YB the increasing pulse move the cursor downward. (Negative for PS/2)
-
-    while (dataX) {
-      switch (stateX) {
-        case 0x00:
-          stateX = 0x01;
-          pinMode(XA, OUTPUT);
-          pinMode(XB, INPUT);
-          break;
-        case 0x01:
-          stateX = 0x03;
-          pinMode(XA, OUTPUT);
-          pinMode(XB, OUTPUT);
-          break;
-        case 0x03:
-          stateX = 0x02;
-          pinMode(XA, INPUT);
-          pinMode(XB, OUTPUT);
-          break;
-        case 0x02:
-          stateX = 0x00;
-          pinMode(XA, INPUT);
-          pinMode(XB, INPUT);
-          break;
-        case 0x10:
-          stateX = 0x12;
-          pinMode(XA, INPUT);
-          pinMode(XB, OUTPUT);
-          break;
-        case 0x12:
-          stateX = 0x13;
-          pinMode(XA, OUTPUT);
-          pinMode(XB, OUTPUT);
-          break;
-        case 0x13:
-          stateX = 0x11;
-          pinMode(XA, OUTPUT);
-          pinMode(XB, INPUT);
-          break;
-        case 0x11:
-          stateX = 0x10;
-          pinMode(XA, INPUT);
-          pinMode(XB, INPUT);
-          break;
-        default:
-          stateX = 0x00;
-      }
-      dataX--;
-      delayMicroseconds(150);
-      //delayMicroseconds(3);
-    }
-
-    while (dataY) {
-      switch (stateY) {
-        case 0x20:
-          stateY = 0x21;
-          pinMode(YA, OUTPUT);
-          pinMode(YB, INPUT);
-          break;
-        case 0x21:
-          stateY = 0x23;
-          pinMode(YA, OUTPUT);
-          pinMode(YB, OUTPUT);
-          break;
-        case 0x23:
-          stateY = 0x22;
-          pinMode(YA, INPUT);
-          pinMode(YB, OUTPUT);
-          break;
-        case 0x22:
-          stateY = 0x20;
-          pinMode(YA, INPUT);
-          pinMode(YB, INPUT);
-          break;
-        case 0x00:
-          stateY = 0x02;
-          pinMode(YA, INPUT);
-          pinMode(YB, OUTPUT);
-          break;
-        case 0x02:
-          stateY = 0x03;
-          pinMode(YA, OUTPUT);
-          pinMode(YB, OUTPUT);
-          break;
-        case 0x03:
-          stateY = 0x01;
-          pinMode(YA, OUTPUT);
-          pinMode(YB, INPUT);
-          break;
-        case 0x01:
-          stateY = 0x00;
-          pinMode(YA, INPUT);
-          pinMode(YB, INPUT);
-          break;
-        default:
-          stateY = 0x00;
-      }
-      dataY--;
-      delayMicroseconds(150);
-      //delayMicroseconds(3);
-    }
-    data_cnt = 0;
-  } 
+  
   delayMicroseconds(5);
 
 }
