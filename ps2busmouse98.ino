@@ -1,6 +1,5 @@
 //ps2busmouse98
 //PS/2 - pc-98 bus mouse converter
-#include <MsTimer2.h>
 #include "PS2MouseHandler.h"
 
 #define PS2DATA A4
@@ -17,145 +16,18 @@
 
 PS2MouseHandler mouse(PS2CLK, PS2DATA, PS2_MOUSE_STREAM);
 
-//#define DEBUG
-
-int error_f = 0;
-int error_cnt = 0;
-int error_watchdog = 0;
+// Error stuff that is set by the original code,
+// I just left it here because there is some error
+// recovery stuff
 int error_parity = 0;
-
-void watchdog() {
-  if (error_cnt >= ERROR_NUM) {
-    error_f = 1;
-    error_cnt = 0;
-  }
-  else {
-    error_cnt++;
-  }
-}
-
-void sendData(char tdata) {
-  int clk_val = 0;
-  int tbit = 0;
-  int tparity = 0;
-
-  digitalWrite(PS2CLK, LOW);
-  digitalWrite(PS2DATA, LOW);
-  pinMode(PS2CLK, OUTPUT);
-
-  delayMicroseconds(200);
-  pinMode(PS2DATA, OUTPUT);
-
-  delayMicroseconds(200);
-  pinMode(PS2CLK, INPUT);
-
-  error_f = 0;
-  error_cnt = 0;
-  MsTimer2::start();
-
-  // Data
-  for (int i=0; i<8; i++) {
-    clk_val = digitalRead(PS2CLK);
-    while (clk_val) {
-      clk_val = digitalRead(PS2CLK);
-      delayMicroseconds(5);
-      if (error_f) {
-        break;
-      }
-    }
-    tbit = tdata & 0x01;
-    tparity = tparity ^ tbit;
-    if (tbit) {
-      pinMode(PS2DATA, INPUT);
-    }
-    else {
-      pinMode(PS2DATA, OUTPUT);
-    }
-    tdata = (tdata >> 1);
-    while (!clk_val) {
-      clk_val = digitalRead(PS2CLK);
-      delayMicroseconds(5);
-      if (error_f) {
-        break;
-      }
-    }
-  }
-
-  // Parity
-  clk_val = digitalRead(PS2CLK);
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  if (tparity) {
-    pinMode(PS2DATA, OUTPUT);
-  }
-  else {
-    pinMode(PS2DATA, INPUT); // odd parity
-  }
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);    
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-
-  // Stop
-  clk_val = digitalRead(PS2CLK);
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  pinMode(PS2DATA, INPUT);
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);    
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-
-  // Ack
-  clk_val = digitalRead(PS2CLK);
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);    
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-
-  MsTimer2::stop();
-
-#ifdef DEBUG
-  if (error_f) {
-    Serial.println("Watch Dog Error!");
-  }
-#endif
-
-}
+int error_watchdog = 0;
 
 void setup() {
   int data = 0;
 #ifdef DEBUG
   Serial.begin(9600);
+  Serial.println("Setup");
 #endif
-  pinMode(PS2DATA, INPUT);
-  pinMode(PS2CLK, INPUT);
   pinMode(LED, OUTPUT);
   pinMode(XA, INPUT);
   pinMode(XB, INPUT);
@@ -169,145 +41,30 @@ void setup() {
   digitalWrite(YB, LOW);
   digitalWrite(LB, LOW);
   digitalWrite(RB, LOW);
-  MsTimer2::set(1, watchdog);
 
-  // Handle a USB mouse being attached – copied from https://github.com/kristopher/PS2-Mouse-Arduino/blob/master/PS2Mouse.cpp
-  digitalWrite(PS2DATA, HIGH);
-  digitalWrite(PS2CLK, HIGH);
-  delay(20);
-  sendData(0xFF); // "reset"
-  data = receiveData(); // ack
-  delay(20);
-  receiveData();
-  receiveData();
-  delay(20);
-  // end copied code
+  if((data = mouse.initialise()) != 0) {
+    #ifdef DEBUG
+    Serial.print("Mouse error: ");
+    Serial.println(data);
+    #endif
 
-  // Enable data reporting
-  // Repeat if no acknowledge
-  do {
-    delay(5);
-    sendData(0xF4); // "enable data reporting" to mouse - https://www.eecg.utoronto.ca/~jayar/ece241_08F/AudioVideoCores/ps2/ps2.html
-    if (!error_f) {
-      data = receiveData();
-#ifdef DEBUG
-    Serial.println(data, HEX);
-#endif
+    while(1) {
+      // Alert light for error
+      digitalWrite(LED, HIGH);
+      delay(150);
+      digitalWrite(LED, LOW);
+      delay(150);
     }
-  } while (data != 0xFA); // "acknowledge" from mouse
+  }
 
-  //delay(10);
+  #ifdef DEBUG
+  Serial.println("PS/2 mouse initialized.");
+  #endif
 }
 
 int receiveData(void) {
-  int data = 0;
-  int clk_val = 0;
-  int data_val[8];
-  int parity = 0;
-
-  // Start
-  clk_val = digitalRead(PS2CLK);
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-  }
-
-  error_f = 0;
-  error_cnt = 0;
-  MsTimer2::start();
-
-  // Data
-  for (int i=0; i<8; i++) {
-    clk_val = digitalRead(PS2CLK);
-    while (!clk_val) {
-      clk_val = digitalRead(PS2CLK);
-      delayMicroseconds(5);
-      if (error_f) {
-        break;
-      }
-    }
-    while (clk_val) {
-      clk_val = digitalRead(PS2CLK);
-      delayMicroseconds(5);
-      if (error_f) {
-        break;
-      }
-    }
-    data_val[i] = digitalRead(PS2DATA);
-    parity = parity ^ data_val[i];
-  }
-
-  // Parity
-  clk_val = digitalRead(PS2CLK);
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);    
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  parity = parity ^ digitalRead(PS2DATA); // odd parity
-  digitalWrite(LED, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(LED, LOW);
-
-  // Stop
-  clk_val = digitalRead(PS2CLK);
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  while (clk_val) {
-    clk_val = digitalRead(PS2CLK);    
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-  digitalWrite(LED, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(LED, LOW);  
-  while (!clk_val) {
-    clk_val = digitalRead(PS2CLK);
-    delayMicroseconds(5);
-    if (error_f) {
-      break;
-    }
-  }
-
-  MsTimer2::stop();
-  //error_f = 0;
-  //error_cnt = 0;
-
-  if (error_f) {
-    error_watchdog = 1;
-#ifdef DEBUG
-    Serial.println("Watch Dog Error!");
-#endif
-  }
-
-  if (!parity) {
-    error_parity = 1;
-#ifdef DEBUG
-    Serial.println("Parity Error!");
-#endif
-  }
-
-  for (int i=0; i<8; i++) {
-    data = data |(data_val[i] << i);
-  }
-
-  return data;
+  mouse.get_data();
+  return mouse.status(); // same byte as before
 }
 
 void loop() {
