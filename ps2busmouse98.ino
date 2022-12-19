@@ -129,8 +129,6 @@ void loop() {
       stateX = 3; // how does modulo not work??
     }
     delayMicroseconds(150);
-    Serial.print("PULSE ");
-    Serial.println(stateX);
   }
 
   while(abs(delta_y) > 0) {
