@@ -120,7 +120,7 @@ void loop() {
     delta_x -= increment;
     stateX = (stateX + increment) % 4;
     if(stateX < 0) {
-      stateX = 3; // how does modulo not work??
+      stateX = 3; // HACK
     }
     delayMicroseconds(150);
   }
@@ -151,7 +151,7 @@ void loop() {
     delta_y -= increment;
     stateY = (stateY + increment) % 4;
     if(stateY < 0) {
-      stateY = 3; // how does modulo not work??
+      stateY = 3;
     }
     delayMicroseconds(175);
   }
