@@ -72,26 +72,16 @@ void loop() {
   static int data_cnt = 0;
   static int stateX = 0;
   static int stateY = 0;
-  static int stateB = 0;
-  static int stateBprevious = 0;
   static int dataX = 0;
   static int dataY = 0;
 
   data = receiveData();
 
+  // Buttons
+  pinMode(LB, mouse.button(0) ? OUTPUT : INPUT);
+  pinMode(RB, mouse.button(2) ? OUTPUT : INPUT); // button(1) is middle mouse
+
   if (data_cnt == 0) {
-    if (data & 0x01) {
-      stateB = stateB | 0x01; // L
-    }
-    else {
-      stateB = stateB & 0xFE;
-    }
-    if (data & 0x02) {
-      stateB = stateB | 0x02; // R
-    }
-    else {
-      stateB = stateB & 0xFD;
-    }
     if (data & 0x10) {
       stateX = stateX | 0x10; // Negative X
     }
@@ -132,12 +122,6 @@ void loop() {
 #endif
 
 // Limiter
-    if (error_watchdog || error_parity) {
-      stateB = stateBprevious;
-    }
-    else {
-      stateBprevious = stateB;
-    }
 
     if (error_watchdog || error_parity) {
       dataX = 0;
@@ -155,26 +139,6 @@ void loop() {
 
     error_watchdog = 0;
     error_parity = 0;
-
-// Button
-    switch (stateB) {
-      case 0x00:
-        pinMode(LB, INPUT);
-        pinMode(RB, INPUT);
-        break;
-      case 0x01:
-        pinMode(LB, OUTPUT);
-        pinMode(RB, INPUT);
-        break;
-      case 0x02:
-        pinMode(LB, INPUT);
-        pinMode(RB, OUTPUT);
-        break;
-      case 0x03:
-        pinMode(LB, OUTPUT);
-        pinMode(RB, OUTPUT);
-        break;
-    }
 
 // Cursor
 // state      0 1 3 2
