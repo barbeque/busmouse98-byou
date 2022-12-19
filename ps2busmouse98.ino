@@ -14,6 +14,8 @@
 #define ERROR_NUM 3
 #define MAX_MOVE 20
 
+#define DEBUG
+
 PS2MouseHandler mouse(PS2CLK, PS2DATA, PS2_MOUSE_STREAM);
 
 // Error stuff that is set by the original code,
@@ -88,24 +90,29 @@ void loop() {
   pinMode(RB, mouse.button(2) ? OUTPUT : INPUT); // button(1) is middle mouse
 
   // Prepare state machine to clock out any position changes
-  int delta_x = mouse.x_movement();
-  int delta_y = mouse.y_movement();
+  int delta_x = max(-MAX_MOVE, min(MAX_MOVE, mouse.x_movement()));
+  int delta_y = max(-MAX_MOVE, min(MAX_MOVE, mouse.y_movement()));
+
+  Serial.print("X: ");
+  Serial.print(delta_x);
+  Serial.print(" Y: ");
+  Serial.println(delta_y);
 
   while(abs(delta_x) > 0) {
     switch(stateX) {
-      case 0:
+      case 3:
         pinMode(XA, OUTPUT);
         pinMode(XB, INPUT);
         break;
-      case 1:
+      case 2:
         pinMode(XA, OUTPUT);
         pinMode(XB, OUTPUT);
         break;
-      case 2:
+      case 1:
         pinMode(XA, INPUT);
         pinMode(XB, OUTPUT);
         break;
-      case 3:
+      case 0:
         pinMode(XA, INPUT);
         pinMode(XB, INPUT);
         break;
@@ -121,19 +128,19 @@ void loop() {
 
   while(abs(delta_y) > 0) {
     switch(stateY) {
-      case 0:
+      case 3:
         pinMode(YA, OUTPUT);
         pinMode(YB, INPUT);
         break;
-      case 1:
+      case 2:
         pinMode(YA, OUTPUT);
         pinMode(YB, OUTPUT);
         break;
-      case 2:
+      case 1:
         pinMode(YA, INPUT);
         pinMode(YB, OUTPUT);
         break;
-      case 3:
+      case 0:
         pinMode(YA, INPUT);
         pinMode(YB, INPUT);
         break;
