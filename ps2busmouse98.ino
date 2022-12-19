@@ -18,12 +18,6 @@
 
 PS2MouseHandler mouse(PS2CLK, PS2DATA, PS2_MOUSE_STREAM);
 
-// Error stuff that is set by the original code,
-// I just left it here because there is some error
-// recovery stuff
-int error_parity = 0;
-int error_watchdog = 0;
-
 void setup() {
   int data = 0;
 #ifdef DEBUG
