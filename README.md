@@ -15,10 +15,11 @@ This is because the PS/2 mouse contains a _USB-and-PS/2_ compatible controller c
  - Arduino Pro Mini, either official or one of the many floating around AliExpress
  - FTDI or CH430 USB-to-RS232 adapter
  - Edoardo's [PS/2 to PC-9801 D-sub adapter PCB](https://www.pcbway.com/project/shareproject/NEC_PC_98xx_serial_mouse_adapter_from_PS_2_Mini_DIN_6_USB_A_to_DE_9_Standard_32bc41de.html), the assembly of which requires:
-  - A male DE9 D-sub connector
-  - A female PS/2 connector
-  - 10kΩ 7-SIP (6 resistors) bussed resistor network
-  - Optionally an 0805 SMT LED and a 220Ω 1/4W resistor
+   - A male DE9 D-sub connector
+   - A female PS/2 connector
+   - 10kΩ 7-SIP (6 resistors) bussed resistor network
+   - Optionally an 0805 SMT LED and a 220Ω 1/4W resistor
+ - You may need a passive DE9 extension cable. I like the Sega Genesis/MegaDrive ones that are sold on AliExpress, although you should check that all the pins are carried through, and that the male end of the extension cable can fit into the system.
 
 ### Assembly of Hardware
  - Open the ino file in the Arduino IDE.
