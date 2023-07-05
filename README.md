@@ -1,7 +1,7 @@
 # busmouse98-byou
 A modified PS/2 or USB to PC-98 quadrature mouse converter.
 
-This firmware is based off of [busmouse98](https://github.com/tyama501/ps2busmouse98) by tyama501. His original version is much more clever than this modified one.
+This firmware is based off of [busmouse98](https://github.com/tyama501/ps2busmouse98) by tyama501. His original version is much more clever than this modified one. Thank you very much for your hard work!
 
 The PS/2 mouse interaction uses [the PS2MouseHandler library](https://github.com/getis/Arduino-PS2-Mouse-Handler), which is included. This component is licensed under MIT and was originally developed by Bob Grant.
 
@@ -40,5 +40,3 @@ This is because the PS/2 mouse contains a _USB-and-PS/2_ compatible controller c
 
 ### Software
  - Artdink's _Tokio_
- - 
-## Building
